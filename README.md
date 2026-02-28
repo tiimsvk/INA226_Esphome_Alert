@@ -1,7 +1,7 @@
 INA226 esphome :
 Add funcions:
 - alert pin select:
-- 
+  
  • Shunt Voltage Over-Limit (SOL)
   
  • Shunt Voltage Under-Limit (SUL)
