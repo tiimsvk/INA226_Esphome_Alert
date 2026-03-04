@@ -107,6 +107,18 @@ void INA226Component::setup() {
   // The set_shutdown(true) call treats the incoming parameter as "enabled"
   // (see implementation of set_shutdown() below).
   this->set_shutdown(true);
+
+  // --- NEW: publish alert-related states to Home Assistant at startup ---
+  // Write current alert settings into device and publish the sensor/switch/select
+  // states so HA shows the configured values immediately after boot.
+  this->update_alert_registers_();
+  if (this->alert_select_ != nullptr) {
+    this->alert_select_->publish_state(this->alert_function_);
+  }
+  if (this->alert_limit_number_ != nullptr) {
+    this->alert_limit_number_->publish_state(this->alert_limit_);
+  }
+  // ---------------------------------------------------------------------
 }
 
 // ===============================================================================
