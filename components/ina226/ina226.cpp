@@ -225,7 +225,11 @@ void INA226Component::set_shutdown(bool state) {
   this->shutdown_ = !state;
   this->update_config_register_();
 
-  // Informuj switch o novom stave (publishujeme pôvodný stav switchu)
+  // Po zmene shutdown stavu aktualizuj aj alert registre:
+  // - pri prechode do shutdown → vymažú sa (ALERT pin = OFF)
+  // - pri prechode späť do enabled → obnovia sa podľa nastavenia
+  this->update_alert_registers_();
+
   if (this->shutdown_switch_ != nullptr) {
     this->shutdown_switch_->publish_state(state);
   }
@@ -289,7 +293,17 @@ void INA226Component::update_config_register_() {
 // Zapíše Mask/Enable (06h) a Alert Limit (07h) pod¾a aktuálneho nastavenia
 // ===============================================================================
 void INA226Component::update_alert_registers_() {
-  // 1) Mask/Enable register - nastav alert funkciu
+  // Ak je zariadenie v shutdown ALEBO alert funkcia je None,
+  // vždy nastav registre na 0x0000 (ALERT pin bude vždy OFF)
+  if (this->shutdown_ || this->alert_function_ == ALERT_OPTION_NONE) {
+    this->write_byte_16(INA226_REGISTER_MASK_ENABLE, 0x0000);
+    this->write_byte_16(INA226_REGISTER_ALERT_LIMIT, 0x0000);
+    ESP_LOGD(TAG, "Alert: disabled (shutdown=%s, function=%s)",
+             this->shutdown_ ? "YES" : "NO", this->alert_function_.c_str());
+    return;
+  }
+
+  // Normálne správanie - nastav alert funkciu a limit
   uint16_t mask = this->alert_function_to_mask_(this->alert_function_);
 
   if (!this->write_byte_16(INA226_REGISTER_MASK_ENABLE, mask)) {
@@ -298,7 +312,6 @@ void INA226Component::update_alert_registers_() {
     return;
   }
 
-  // 2) Alert Limit register - nastav prahovú hodnotu
   uint16_t raw_limit = this->alert_limit_to_raw_(this->alert_limit_);
 
   if (!this->write_byte_16(INA226_REGISTER_ALERT_LIMIT, raw_limit)) {
