@@ -27,7 +27,7 @@ static const char *const TAG = "ina226";
 // | SCL  | SDA  | 0x4E    |
 // | SCL  | SCL  | 0x4F    |
 
-// ¦¦ Adresy registrov ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+// ¦¦ Adresy registrov ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
 static const uint8_t INA226_REGISTER_CONFIG       = 0x00;
 static const uint8_t INA226_REGISTER_SHUNT_VOLTAGE = 0x01;
 static const uint8_t INA226_REGISTER_BUS_VOLTAGE   = 0x02;
@@ -102,6 +102,11 @@ void INA226Component::setup() {
     this->mark_failed();
     return;
   }
+
+  // Ensure INA226 is enabled (switch ON) at startup
+  // The set_shutdown(true) call treats the incoming parameter as "enabled"
+  // (see implementation of set_shutdown() below).
+  this->set_shutdown(true);
 }
 
 // ===============================================================================
@@ -200,16 +205,20 @@ void INA226Component::update() {
 // MODE bits = 000 alebo 100 › Power-Down
 // MODE bits = 111            › Shunt and Bus, Continuous
 // ===============================================================================
-void INA226Component::set_shutdown(bool shutdown) {
-  this->shutdown_ = shutdown;
+void INA226Component::set_shutdown(bool state) {
+  // Interpretujem prichádzajúci 'state' zo switchu ako "enabled":
+  // - state == true  => switch ON => zariadenie má bežať
+  // - state == false => switch OFF => zariadenie v power-down
+  // Interné pole shutdown_ drží informáciu "is_shutdown".
+  this->shutdown_ = !state;
   this->update_config_register_();
 
-  // Informuj switch o novom stave (dôležité pre správne zobrazenie v HA)
+  // Informuj switch o novom stave (publishujeme pôvodný stav switchu)
   if (this->shutdown_switch_ != nullptr) {
-    this->shutdown_switch_->publish_state(shutdown);
+    this->shutdown_switch_->publish_state(state);
   }
 
-  ESP_LOGI(TAG, "INA226 shutdown: %s", shutdown ? "OFF (power-down)" : "ON (running)");
+  ESP_LOGI(TAG, "INA226 shutdown: %s", state ? "ON (running)" : "OFF (power-down)");
 }
 
 // ===============================================================================
@@ -253,7 +262,9 @@ void INA226Component::update_config_register_() {
   config.shunt_voltage_conversion_time = this->adc_time_current_;
 
   // MODE bits: 000 = Power-Down, 111 = Shunt and Bus Continuous
-  config.mode = this->shutdown_ ? 0b111 : 0b000;
+  // Ak shutdown_ == true -> Power-Down (000)
+  // Ak shutdown_ == false -> Running (111)
+  config.mode = this->shutdown_ ? 0b000 : 0b111;
 
   if (!this->write_byte_16(INA226_REGISTER_CONFIG, config.raw)) {
     ESP_LOGE(TAG, "Chyba zápisu do Configuration registra");
