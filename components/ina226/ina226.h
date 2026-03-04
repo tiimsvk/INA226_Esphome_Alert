@@ -32,7 +32,7 @@ enum AdcAvgSamples : uint16_t {
   ADC_AVG_SAMPLES_1024 = 7
 };
 
-// Enum pre Alert funkcie - zodpoved· bitom Mask/Enable registra (06h)
+// Enum pre Alert funkcie - zodpoved√° bitom Mask/Enable registra (06h)
 // Bity D15..D11: SOL, SUL, BOL, BUL, POL
 enum AlertFunction : uint16_t {
   ALERT_NONE = 0x0000,
@@ -55,10 +55,10 @@ union ConfigurationRegister {
   } __attribute__((packed));
 };
 
-// ¶¶¶ DoprednÈ deklar·cie ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+// Predn√© deklar√°cie
 class INA226Component;
 
-// ¶¶¶ Shutdown Switch ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+// Shutdown Switch
 class INA226ShutdownSwitch : public switch_::Switch {
  public:
   void set_parent(INA226Component *parent) { parent_ = parent; }
@@ -67,7 +67,7 @@ class INA226ShutdownSwitch : public switch_::Switch {
   INA226Component *parent_{nullptr};
 };
 
-// ¶¶¶ Alert Function Select ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+// Alert Function Select
 class INA226AlertSelect : public select::Select {
  public:
   void set_parent(INA226Component *parent) { parent_ = parent; }
@@ -76,7 +76,7 @@ class INA226AlertSelect : public select::Select {
   INA226Component *parent_{nullptr};
 };
 
-// ¶¶¶ Alert Limit Number ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+// Alert Limit Number
 class INA226AlertNumber : public number::Number {
  public:
   void set_parent(INA226Component *parent) { parent_ = parent; }
@@ -85,14 +85,14 @@ class INA226AlertNumber : public number::Number {
   INA226Component *parent_{nullptr};
 };
 
-// ¶¶¶ Hlavn˝ komponent ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+// Hlavn√Ω komponent
 class INA226Component : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
   void dump_config() override;
   void update() override;
 
-  // ¶¶ Settery pre z·kladn˙ konfigur·ciu ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Settery pre z√°kladn√∫ konfigur√°ciu
   void set_shunt_resistance_ohm(float shunt_resistance_ohm) {
     shunt_resistance_ohm_ = shunt_resistance_ohm;
   }
@@ -101,57 +101,61 @@ class INA226Component : public PollingComponent, public i2c::I2CDevice {
   void set_adc_time_current(AdcTime time)     { adc_time_current_ = time; }
   void set_adc_avg_samples(AdcAvgSamples samples) { adc_avg_samples_ = samples; }
 
-  // ¶¶ Settery pre senzory ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Settery pre senzory
   void set_bus_voltage_sensor(sensor::Sensor *s)   { bus_voltage_sensor_   = s; }
   void set_shunt_voltage_sensor(sensor::Sensor *s) { shunt_voltage_sensor_ = s; }
   void set_current_sensor(sensor::Sensor *s)       { current_sensor_       = s; }
   void set_power_sensor(sensor::Sensor *s)         { power_sensor_         = s; }
 
-  // ¶¶ Settery pre novÈ entity ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Settery pre nov√© entity
   void set_shutdown_switch(INA226ShutdownSwitch *sw)  { shutdown_switch_      = sw;  }
   void set_alert_select(INA226AlertSelect *sel)        { alert_select_         = sel; }
   void set_alert_limit_number(INA226AlertNumber *num)  { alert_limit_number_   = num; }
 
-  // ¶¶ AkËnÈ metÛdy volanÈ z entÌt ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
-  void set_shutdown(bool shutdown);
+  // Akƒçn√© met√≥dy volan√© z ent√≠t
+  // Pozn√°mka: parameter 'enabled' interpretuje true = device enabled (switch ON),
+  // false = device in power-down (switch OFF).
+  void set_shutdown(bool enabled);
   void set_alert_function(const std::string &function);
   void set_alert_limit(float limit);
 
  protected:
-  // ¶¶ Parametre merania ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Parametre merania
   float shunt_resistance_ohm_{0.1f};
   float max_current_a_{3.2f};
-  // LSB pr˙du v mikroampÈroch (uloûenÈ ako celÈ ËÌslo pre presnosù)
+  // LSB pr√∫du v mikroamp√©roch (ulo≈æen√© ako cel√© ƒç√≠slo pre presnos≈•)
   uint32_t calibration_lsb_{0};
 
   AdcTime       adc_time_voltage_ {AdcTime::ADC_TIME_1100US};
   AdcTime       adc_time_current_ {AdcTime::ADC_TIME_1100US};
   AdcAvgSamples adc_avg_samples_  {AdcAvgSamples::ADC_AVG_SAMPLES_4};
 
-  // ¶¶ Senzory ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Senzory
   sensor::Sensor *bus_voltage_sensor_  {nullptr};
   sensor::Sensor *shunt_voltage_sensor_{nullptr};
   sensor::Sensor *current_sensor_      {nullptr};
   sensor::Sensor *power_sensor_        {nullptr};
 
-  // ¶¶ NovÈ entity ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Nov√© entity
   INA226ShutdownSwitch *shutdown_switch_    {nullptr};
   INA226AlertSelect    *alert_select_       {nullptr};
   INA226AlertNumber    *alert_limit_number_ {nullptr};
 
-  // ¶¶ Intern˝ stav ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Intern√Ω stav
+  // shutdown_ == true  => zariadenie je v power-down
+  // shutdown_ == false => zariadenie be≈æ√≠
   bool        shutdown_       {false};
   std::string alert_function_ {"None"};
   float       alert_limit_    {0.0f};
 
-  // ¶¶ PomocnÈ metÛdy ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶
+  // Pomocn√© met√≥dy
   int32_t twos_complement_(int32_t val, uint8_t bits);
   void    update_config_register_();
   void    update_alert_registers_();
 
-  // Konverzia n·zvu funkcie na raw hodnotu Mask/Enable registra
+  // Konverzia n√°zvu funkcie na raw hodnotu Mask/Enable registra
   uint16_t alert_function_to_mask_(const std::string &function);
-  // Konverzia fyzik·lnej hodnoty na raw hodnotu Alert Limit registra
+  // Konverzia fyzik√°lnej hodnoty na raw hodnotu Alert Limit registra
   uint16_t alert_limit_to_raw_(float limit);
 };
 
