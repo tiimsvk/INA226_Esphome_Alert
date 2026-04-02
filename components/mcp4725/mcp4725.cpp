@@ -1,12 +1,36 @@
 #include "mcp4725.h"
 #include "esphome/core/log.h"
 #include <cmath>
-#include "Arduino.h"  // pre millis(), delay()
+
+#ifdef ARDUINO
+#include "Arduino.h"  // millis(), delay()
+#else
+// ESP-IDF / FreeRTOS includes
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#endif
 
 namespace esphome {
 namespace mcp4725 {
 
 static const char *const TAG = "mcp4725";
+
+// portable helpers
+static inline uint32_t now_ms() {
+#ifdef ARDUINO
+  return millis();
+#else
+  return (uint32_t)(esp_timer_get_time() / 1000ULL);
+#endif
+}
+static inline void sleep_ms(uint32_t ms) {
+#ifdef ARDUINO
+  delay(ms);
+#else
+  vTaskDelay(pdMS_TO_TICKS(ms));
+#endif
+}
 
 void MCP4725::setup() {
   // Basic I2C probe: write 0 bytes to check device
@@ -62,7 +86,7 @@ void MCP4725::write_state(float state) {
     return;
   }
 
-  uint32_t now = millis();
+  uint32_t now = now_ms();
 
   // Rate limiting: if last EEPROM write was recent, skip scheduling due to min interval
   if (now < this->last_eeprom_write_ms_ + this->save_min_interval_ms_) {
@@ -81,7 +105,7 @@ void MCP4725::loop() {
   if (!this->pending_save_)
     return;
 
-  uint32_t now = millis();
+  uint32_t now = now_ms();
   if (now < this->pending_save_ms_)
     return;
 
@@ -124,7 +148,7 @@ bool MCP4725::read_eeprom(uint16_t *dac_value, bool wait_ready, uint8_t max_atte
       }
       // if more attempts remain, wait and retry
       if (attempt + 1 < max_attempts) {
-        delay(delay_ms);
+        sleep_ms(delay_ms);
         continue;
       } else {
         ESP_LOGW(TAG, "MCP4725 still busy after %u attempts", max_attempts);
