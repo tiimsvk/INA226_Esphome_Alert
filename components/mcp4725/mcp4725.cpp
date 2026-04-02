@@ -1,6 +1,7 @@
 #include "mcp4725.h"
 #include "esphome/core/log.h"
 #include <cmath>
+#include "Arduino.h"  // pre millis(), delay()
 
 namespace esphome {
 namespace mcp4725 {
@@ -21,8 +22,8 @@ void MCP4725::setup() {
   if (this->read_eeprom(&dac_raw, true, 20, 5)) {
     const float level = (float)dac_raw / (pow(2, MCP4725_RES) - 1);
     ESP_LOGD(TAG, "Read MCP4725 raw=%u -> level=%f", dac_raw, level);
-    // Publish to ESPHome/HA
-    this->publish_state(level);
+    // Publish to ESPHome/HA via base class method
+    this->output::FloatOutput::publish_state(level);
     // Store as last known persisted value
     this->last_persisted_level_ = level;
   } else {
@@ -50,7 +51,6 @@ void MCP4725::write_state(float state) {
     return;
 
   // Decide whether we should persist this change:
-  // If last persisted is unknown, treat it as different and schedule save.
   bool different;
   if (this->last_persisted_level_ < 0.0f)
     different = true;
@@ -64,16 +64,15 @@ void MCP4725::write_state(float state) {
 
   uint32_t now = millis();
 
-  // Rate limiting: if last EEPROM write was recent, skip scheduling until min interval passes
+  // Rate limiting: if last EEPROM write was recent, skip scheduling due to min interval
   if (now < this->last_eeprom_write_ms_ + this->save_min_interval_ms_) {
     ESP_LOGD(TAG, "Skipping EEPROM save scheduling due to rate limit");
     return;
   }
 
   // Schedule save after debounce_ms
-  this->pending_save_{};
-  this->pending_save_level_ = state;
   this->pending_save_ms_ = now + this->save_debounce_ms_;
+  this->pending_save_level_ = state;
   this->pending_save_ = true;
   ESP_LOGD(TAG, "Scheduled EEPROM save at %u (in %u ms) for level=%f", this->pending_save_ms_, this->save_debounce_ms_, state);
 }
@@ -83,11 +82,10 @@ void MCP4725::loop() {
     return;
 
   uint32_t now = millis();
-  if ((int32_t)(now - this->pending_save_ms_) < 0)
+  if (now < this->pending_save_ms_)
     return;
 
   // Time to perform EEPROM write
-  // Convert level to 12-bit value
   uint16_t value = (uint16_t) round(this->pending_save_level_ * (pow(2, MCP4725_RES) - 1));
 
   // Perform non-volatile write command (0x60). This will start EEPROM write and device will be busy shortly.
