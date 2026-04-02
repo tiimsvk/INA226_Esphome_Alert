@@ -47,7 +47,7 @@ void MCP4725::setup() {
     const float level = (float)dac_raw / (pow(2, MCP4725_RES) - 1);
     ESP_LOGD(TAG, "Read MCP4725 raw=%u -> level=%f", dac_raw, level);
     // Publish to ESPHome/HA via base class method
-    this->output::FloatOutput::publish_state(level);
+    this->publish_state(level);
     // Store as last known persisted value
     this->last_persisted_level_ = level;
   } else {
