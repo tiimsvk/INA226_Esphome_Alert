@@ -14,19 +14,30 @@ class MCP4725 : public Component, public output::FloatOutput, public i2c::I2CDev
   void setup() override;
   void dump_config() override;
   void write_state(float state) override;
+  void loop() override;
 
-  // Prečíta 3-byty z MCP4725 (register + EEPROM).
-  // Ak success, *dac_value obsahuje 12-bit aktuálnu DAC hodnotu (0..4095).
-  // wait_ready - ak true, bude sa opakovane čítať (a čakať) až do max_attempts, kým zariadenie nie je ready.
-  // max_attempts, delay_ms - retry parametre (použité len keď wait_ready=true).
+  // Read 3 bytes from MCP4725 (register + EEPROM). If success, *dac_value gets 12-bit value (0..4095).
   bool read_eeprom(uint16_t *dac_value = nullptr, bool wait_ready = false, uint8_t max_attempts = 20, uint16_t delay_ms = 5);
 
-  // Nastaví, či zapisovať do EEPROM pri každom sete (false = iba DAC register, volatile).
+  // Configuration setters (from output.py)
   void set_save_to_eeprom(bool save) { this->save_to_eeprom_ = save; }
+  void set_save_threshold(float t) { this->save_threshold_ = t; }  // relative (0..1)
+  void set_save_debounce_ms(uint32_t ms) { this->save_debounce_ms_ = ms; }
+  void set_save_min_interval_s(uint32_t s) { this->save_min_interval_ms_ = s * 1000u; }
 
  protected:
   enum ErrorCode { NONE = 0, COMMUNICATION_FAILED } error_code_{NONE};
+
+  // EEPROM/write scheduling state
   bool save_to_eeprom_{false};
+  float last_persisted_level_{-1.0f};        // last value known to be in EEPROM (0..1), -1 = unknown
+  float save_threshold_{0.01f};              // relative threshold (default 1%)
+  uint32_t save_debounce_ms_{3000};          // default 3s debounce
+  uint32_t save_min_interval_ms_{60000};     // default min interval 60s
+  uint32_t last_eeprom_write_ms_{0};         // last time we issued EEPROM write
+  bool pending_save_{false};
+  uint32_t pending_save_ms_{0};
+  float pending_save_level_{0.0f};
 };
 
 }  // namespace mcp4725
