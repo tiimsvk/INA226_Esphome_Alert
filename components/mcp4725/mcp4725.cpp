@@ -33,7 +33,6 @@ static inline void sleep_ms(uint32_t ms) {
 }
 
 void MCP4725::setup() {
-  // Basic I2C probe: write 0 bytes to check device
   auto err = this->write(nullptr, 0);
   if (err != i2c::ERROR_OK) {
     this->error_code_ = COMMUNICATION_FAILED;
@@ -41,15 +40,12 @@ void MCP4725::setup() {
     return;
   }
 
-  // Try to read persisted DAC value (wait for device ready with retries)
   uint16_t dac_raw;
   if (this->read_eeprom(&dac_raw, true, 20, 5)) {
     const float level = (float)dac_raw / (pow(2, MCP4725_RES) - 1);
     ESP_LOGD(TAG, "Read MCP4725 raw=%u -> level=%f", dac_raw, level);
-    // Publish to ESPHome/HA via base class method
-    this->publish_state(level);
-    // Store as last known persisted value
-    this->last_persisted_level_ = level;
+    this->last_persisted_level_ = level;  // ← set FIRST so write_state sees no change
+    this->write_state(level);
   } else {
     ESP_LOGW(TAG, "Could not read MCP4725 EEPROM/register on startup or device busy");
   }
