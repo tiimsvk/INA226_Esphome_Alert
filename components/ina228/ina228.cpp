@@ -356,6 +356,7 @@ void INA228Component::write_adc_config_register_() {
 // DIAG_ALRT (0x0B) + príslušný limit register (0x0C–0x11)
 // ===========================================================================
 void INA228Component::update_alert_registers_() {
+  // 1) Ak je vypnuté alebo žiadna funkcia → všetko nuluj
   if (this->shutdown_ || this->alert_function_ == ALERT_OPT_NONE) {
     this->write_byte_16(INA228_REG_DIAG_ALRT, 0x0000);
     this->write_byte_16(INA228_REG_SOVL, 0x0000);
@@ -367,16 +368,33 @@ void INA228Component::update_alert_registers_() {
     return;
   }
 
-  uint16_t diag_mask = this->alert_function_to_diag_bit_(this->alert_function_);
-  if (!this->write_byte_16(INA228_REG_DIAG_ALRT, diag_mask)) {
-    ESP_LOGE(TAG, "Chyba zápisu DIAG_ALRT registra");
+  // 2) Vymaž latched flagy – zapíš WRITE‑1‑TO‑CLEAR do CLRALERT bitu.
+  // Poznámka: skontroluj v datasheete presnú pozíciu CLRALERT; tu používame bit masku
+  // s CLRALERT = (1 << 15) (MSB) — ak má tvoj datasheet inú pozíciu, uprav túto masku.
+  const uint16_t DIAG_ALRT_CLRALERT = (1u << 15);
+  if (!this->write_byte_16(INA228_REG_DIAG_ALRT, DIAG_ALRT_CLRALERT)) {
+    ESP_LOGE(TAG, "Chyba pri vymazaní latched alert bitov (CLRALERT)");
     this->status_set_warning();
     return;
   }
 
+  // (Voliteľné debugovanie: prečítaj aktuálny DIAG_ALRT a zaloguj ho)
+  uint16_t diag_after_clear = 0;
+  if (this->read_byte_16(INA228_REG_DIAG_ALRT, &diag_after_clear)) {
+    ESP_LOGD(TAG, "DIAG_ALRT po CLRALERT = 0x%04X", diag_after_clear);
+  }
+
+  // 3) Nastav masku alert funkcie (LEN implicitne = 0, pretože zapisujeme len enable bity)
+  uint16_t diag_mask = this->alert_function_to_diag_bit_(this->alert_function_);
+  if (!this->write_byte_16(INA228_REG_DIAG_ALRT, diag_mask)) {
+    ESP_LOGE(TAG, "Chyba zápisu DIAG_ALRT registra (nastavenie masky)");
+    this->status_set_warning();
+    return;
+  }
+
+  // 4) Prepočítaj a zapíš limit register pre vybrané alerty
   uint16_t raw_limit = this->alert_limit_to_raw_(this->alert_limit_);
 
-  // Vyber správny limit register podľa funkcie
   uint8_t limit_reg = 0;
   if (this->alert_function_ == ALERT_OPT_SHNTOL) limit_reg = INA228_REG_SOVL;
   else if (this->alert_function_ == ALERT_OPT_SHNTUL) limit_reg = INA228_REG_SUVL;
@@ -392,7 +410,7 @@ void INA228Component::update_alert_registers_() {
     }
   }
 
-  ESP_LOGD(TAG, "Alert: diag=0x%04X, limit_reg=0x%02X, raw=0x%04X (%.4f)",
+  ESP_LOGD(TAG, "Alert: diag_mask=0x%04X, limit_reg=0x%02X, raw=0x%04X (%.4f)",
            diag_mask, limit_reg, raw_limit, this->alert_limit_);
 }
 
