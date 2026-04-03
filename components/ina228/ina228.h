@@ -61,13 +61,12 @@ union AdcConfigRegister {
 union ConfigRegister {
   uint16_t raw;
   struct {
-    uint16_t reserved1  : 6;  // bits [5:0]
-    uint16_t adcrange   : 1;  // bit  [6]  – 0=±163.84mV, 1=±40.96mV
-    uint16_t reserved2  : 1;  // bit  [7]
-    uint16_t tempcomp   : 1;  // bit  [8]  – Temp compensation enable
-    uint16_t convdly    : 5;  // bits [13:9] – Conversion delay
-    uint16_t rstacc     : 1;  // bit  [14] – Reset accumulators
-    uint16_t rst        : 1;  // bit  [15] – Full reset
+    uint16_t reserved  : 4;  // bity 0-3 (rezervované)
+    uint16_t adcrange  : 1;  // bit 4 (0=±163.84mV, 1=±40.96mV)
+    uint16_t tempcomp  : 1;  // bit 5 (Teplotná kompenzácia)
+    uint16_t convdly   : 8;  // bity 6-13 (Conversion delay)
+    uint16_t rstacc    : 1;  // bit 14 (Reset akumulátorov)
+    uint16_t rst       : 1;  // bit 15 (Reset čipu)
   } __attribute__((packed));
 };
 
