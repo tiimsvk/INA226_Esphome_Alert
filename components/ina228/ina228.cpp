@@ -8,7 +8,6 @@ namespace esphome {
 namespace ina228 {
 
 static const char *const TAG = "ina228";
-static inline uint16_t be16(uint16_t v) { return (uint16_t)((v >> 8) | (v << 8)); }
 
 // ---------------------------------------------------------------------------
 // Register adresy INA228
@@ -58,7 +57,7 @@ void INA228Component::setup() {
   // 1) Full reset zariadenia
   uint16_t reset_val = 0x8000; // RST bit (bit 15)
 
-  if (!this->write_byte_16(INA228_REG_CONFIG, be16(reset_val))) {  // FIX: zátvorka
+  if (!this->write_byte_16(INA228_REG_CONFIG, reset_val)) {
     ESP_LOGE(TAG, "Nepodarilo sa vykonať reset INA228");
     this->mark_failed();
     return;
@@ -74,7 +73,7 @@ void INA228Component::setup() {
   cfg.adcrange = this->adc_range_ ? 1 : 0;
   cfg.tempcomp = this->temp_comp_enabled_ ? 1 : 0;
 
-  if (!this->write_byte_16(INA228_REG_CONFIG, be16(cfg.raw))) {
+  if (!this->write_byte_16(INA228_REG_CONFIG, cfg.raw)) {
     this->mark_failed();
     return;
   }
@@ -85,7 +84,7 @@ void INA228Component::setup() {
   if (this->temp_comp_enabled_) {
     int16_t tempco_raw = (int16_t) lroundf(this->shunt_tempco_ppm_);
 
-    if (!this->write_byte_16(INA228_REG_SHUNT_TEMPCO, be16((uint16_t) tempco_raw))) {
+    if (!this->write_byte_16(INA228_REG_SHUNT_TEMPCO, (uint16_t) tempco_raw)) {
       this->mark_failed();
       return;
     }
@@ -111,7 +110,7 @@ void INA228Component::setup() {
 
   uint16_t shunt_cal = (uint16_t) shunt_cal_f;
 
-  if (!this->write_byte_16(INA228_REG_SHUNT_CAL, be16(shunt_cal))) {
+  if (!this->write_byte_16(INA228_REG_SHUNT_CAL, shunt_cal)) {
     this->mark_failed();
     return;
   }
@@ -262,8 +261,6 @@ void INA228Component::update() {
       return;
     }
     
-    raw = be16(raw);   // FIX
-    
     int16_t val = static_cast<int16_t>(raw);
     float temp = static_cast<float>(val) * 0.0078125f;
     this->temperature_sensor_->publish_state(temp);
@@ -322,9 +319,7 @@ void INA228Component::write_config_register_() {
   cfg.raw      = 0;
   cfg.adcrange = this->adc_range_ ? 1 : 0;
 
-  uint16_t swapped = be16(cfg.raw);
-
-  if (!this->write_byte_16(INA228_REG_CONFIG, swapped)) {
+  if (!this->write_byte_16(INA228_REG_CONFIG, cfg.raw)) {
     ESP_LOGE(TAG, "Chyba zápisu CONFIG registra");
     this->status_set_warning();
   }
@@ -347,9 +342,7 @@ void INA228Component::write_adc_config_register_() {
   reg |= ((uint16_t)this->adc_time_temp_    & 0x7) << 3;
   reg |= ((uint16_t)this->adc_avg_samples_  & 0xF);
 
-  uint16_t swapped = be16(reg);
-
-  if (!this->write_byte_16(INA228_REG_ADC_CONFIG, swapped)) {
+  if (!this->write_byte_16(INA228_REG_ADC_CONFIG, reg)) {
     ESP_LOGE(TAG, "Chyba zápisu ADC_CONFIG");
     this->status_set_warning();
   }
@@ -375,7 +368,7 @@ void INA228Component::update_alert_registers_() {
   }
 
   uint16_t diag_mask = this->alert_function_to_diag_bit_(this->alert_function_);
-  if (!this->write_byte_16(INA228_REG_DIAG_ALRT, be16(diag_mask))) {
+  if (!this->write_byte_16(INA228_REG_DIAG_ALRT, diag_mask)) {
     ESP_LOGE(TAG, "Chyba zápisu DIAG_ALRT registra");
     this->status_set_warning();
     return;
@@ -392,7 +385,7 @@ void INA228Component::update_alert_registers_() {
   else if (this->alert_function_ == ALERT_OPT_POL)    limit_reg = INA228_REG_PWR_LIMIT;
 
   if (limit_reg != 0) {
-    if (!this->write_byte_16(limit_reg, be16(raw_limit))) {
+    if (!this->write_byte_16(limit_reg, raw_limit)) {
       ESP_LOGE(TAG, "Chyba zápisu alert limit registra");
       this->status_set_warning();
       return;
