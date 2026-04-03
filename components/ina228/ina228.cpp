@@ -336,19 +336,16 @@ void INA228Component::write_config_register_() {
 // write_adc_config_register_() — ADC_CONFIG (0x01)
 // MODE: 000 = Power-Down, 111 = Shunt+Bus+Temp Continuous
 // ===========================================================================
-
-
 void INA228Component::write_adc_config_register_() {
   uint16_t reg = 0;
 
-  // MODE: 000 = power-down, 111 = continuous (shunt+bus+temp)
-  uint16_t mode = this->shutdown_ ? 0x0 : 0x7;
+  uint16_t mode = this->shutdown_ ? 0x0 : 0xF;
 
-  reg |= (mode & 0x7) << 12;
+  reg |= (mode & 0xF) << 12;
   reg |= ((uint16_t)this->adc_time_voltage_ & 0x7) << 9;
   reg |= ((uint16_t)this->adc_time_current_ & 0x7) << 6;
   reg |= ((uint16_t)this->adc_time_temp_    & 0x7) << 3;
-  reg |= ((uint16_t)this->adc_avg_samples_  & 0x7);
+  reg |= ((uint16_t)this->adc_avg_samples_  & 0xF);
 
   uint16_t swapped = be16(reg);
 
