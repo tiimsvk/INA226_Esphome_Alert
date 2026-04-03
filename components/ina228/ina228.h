@@ -73,14 +73,15 @@ union ConfigRegister {
 
 // ---------------------------------------------------------------------------
 // Alert funkcie – zodpovedajú bitom DIAG_ALRT registra (0x0B)
+// Bity D6..D2 sú enable bity pre jednotlivé alert funkcie (datasheet Table 7-17)
 // ---------------------------------------------------------------------------
 enum AlertFunction : uint16_t {
-  ALERT_NONE  = 0x0000,
-  ALERT_SHNTOL = (1 << 9),   // Shunt Voltage Over-Limit  (bit D9)
-  ALERT_SHNTUL = (1 << 10),  // Shunt Voltage Under-Limit (bit D10)
-  ALERT_BUSOL  = (1 << 11),  // Bus Voltage Over-Limit    (bit D11)
-  ALERT_BUSUL  = (1 << 12),  // Bus Voltage Under-Limit   (bit D12)
-  ALERT_POL    = (1 << 13),  // Power Over-Limit          (bit D13)
+  ALERT_NONE   = 0x0000,
+  ALERT_SHNTOL = (1 << 6),  // Shunt Voltage Over-Limit  (bit D6)
+  ALERT_SHNTUL = (1 << 5),  // Shunt Voltage Under-Limit (bit D5)
+  ALERT_BUSOL  = (1 << 4),  // Bus Voltage Over-Limit    (bit D4)
+  ALERT_BUSUL  = (1 << 3),  // Bus Voltage Under-Limit   (bit D3)
+  ALERT_POL    = (1 << 2),  // Power Over-Limit          (bit D2)
 };
 
 // ---------------------------------------------------------------------------

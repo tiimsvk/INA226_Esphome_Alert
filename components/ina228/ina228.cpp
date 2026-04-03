@@ -414,8 +414,11 @@ uint16_t INA228Component::alert_function_to_diag_bit_(const std::string &functio
 // Konverzia fyzikálnej hodnoty na raw register
 //
 // SOVL/SUVL: Shunt Voltage [V]
-//   ADCRANGE=0: LSB = 312.5 nV  → raw = limit / 312.5e-9
-//   ADCRANGE=1: LSB = 78.125 nV → raw = limit / 78.125e-9
+//   SOVL/SUVL are 16-bit registers compared against the upper 16 bits of the
+//   20-bit VSHUNT value (bits [23:8] of the 24-bit raw register).
+//   Therefore their LSB is 16× larger than the VSHUNT measurement LSB:
+//   ADCRANGE=0: LSB = 16 × 312.5 nV = 5 µV  → raw = limit / 5e-6
+//   ADCRANGE=1: LSB = 16 × 78.125 nV = 1.25 µV → raw = limit / 1.25e-6
 // BOVL/BUVL: Bus Voltage [V]
 //   LSB = 3.125 mV → raw = limit / 3.125e-3
 // PWR_LIMIT: Power [W]
@@ -424,7 +427,7 @@ uint16_t INA228Component::alert_function_to_diag_bit_(const std::string &functio
 uint16_t INA228Component::alert_limit_to_raw_(float limit) {
   if (this->alert_function_ == ALERT_OPT_SHNTOL ||
       this->alert_function_ == ALERT_OPT_SHNTUL) {
-    float lsb = this->adc_range_ ? 78.125e-9f : 312.5e-9f;
+    float lsb = this->adc_range_ ? 1.25e-6f : 5.0e-6f;
     return static_cast<uint16_t>(limit / lsb);
 
   } else if (this->alert_function_ == ALERT_OPT_BUSOL ||
