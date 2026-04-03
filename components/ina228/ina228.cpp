@@ -131,6 +131,9 @@ void INA228Component::setup() {
   // -----------------------------------------------------------------------
   this->shutdown_ = false;
   this->write_adc_config_register_();
+  
+  //DÔLEŽITÉ – počkaj na prvú konverziu
+  delay(10);
 
   // -----------------------------------------------------------------------
   // 7) publish HA state
@@ -336,22 +339,25 @@ void INA228Component::write_config_register_() {
 
 
 void INA228Component::write_adc_config_register_() {
-  AdcConfigRegister adc_cfg;
-  adc_cfg.raw    = 0;
-  //adc_cfg.mode   = this->shutdown_ ? 0 : 15; // 15 je Continuous mode
-  adc_cfg.mode   = this->shutdown_ ? 0x0 : 0xF; // 15 je Continuous mode
-  adc_cfg.vbusct = (uint16_t) this->adc_time_voltage_;
-  adc_cfg.vshct  = (uint16_t) this->adc_time_current_;
-  adc_cfg.vtct   = (uint16_t) this->adc_time_temp_;
-  adc_cfg.avg    = (uint16_t) this->adc_avg_samples_;
+  uint16_t reg = 0;
 
-  uint16_t swapped = be16(adc_cfg.raw);
+  // MODE: 000 = power-down, 111 = continuous (shunt+bus+temp)
+  uint16_t mode = this->shutdown_ ? 0x0 : 0x7;
 
+  reg |= (mode & 0x7) << 12;
+  reg |= ((uint16_t)this->adc_time_voltage_ & 0x7) << 9;
+  reg |= ((uint16_t)this->adc_time_current_ & 0x7) << 6;
+  reg |= ((uint16_t)this->adc_time_temp_    & 0x7) << 3;
+  reg |= ((uint16_t)this->adc_avg_samples_  & 0x7);
+
+  uint16_t swapped = be16(reg);
 
   if (!this->write_byte_16(INA228_REG_ADC_CONFIG, swapped)) {
     ESP_LOGE(TAG, "Chyba zápisu ADC_CONFIG");
     this->status_set_warning();
   }
+
+  ESP_LOGD(TAG, "ADC_CONFIG = 0x%04X", reg);
 }
 
 
