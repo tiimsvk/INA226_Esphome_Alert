@@ -445,21 +445,30 @@ uint16_t INA228Component::alert_function_to_diag_bit_(const std::string &functio
 //   Power_LSB = 3.2 × current_lsb_ → raw = limit / (3.2 * current_lsb_)
 // ===========================================================================
 uint16_t INA228Component::alert_limit_to_raw_(float limit) {
-  if (this->alert_function_ == ALERT_OPT_SHNTOL ||
-      this->alert_function_ == ALERT_OPT_SHNTUL) {
-    float lsb = this->adc_range_ ? 1.25e-6f : 5.0e-6f;
+  if (this->alert_function_ == "Shunt Over-Limit" || this->alert_function_ == "Shunt Under-Limit") {
+    // LSB pre Shunt Voltage je 312.5 nV (0.3125 uV) ak ADCRANGE=0
+    // LSB je 78.125 nV (0.078125 uV) ak ADCRANGE=1
+    float lsb = this->adc_range_ ? 78.125e-9f : 312.5e-9f;
     return static_cast<uint16_t>(limit / lsb);
-
-  } else if (this->alert_function_ == ALERT_OPT_BUSOL ||
-             this->alert_function_ == ALERT_OPT_BUSUL) {
-    return static_cast<uint16_t>(limit / 3.125e-3f);
-
-  } else if (this->alert_function_ == ALERT_OPT_POL) {
-    float power_lsb = 3.2f * this->current_lsb_;
-    return static_cast<uint16_t>(limit / power_lsb);
+  }
+  
+  if (this->alert_function_ == "Bus Over-Limit" || this->alert_function_ == "Bus Under-Limit") {
+    // VBUS LSB je fixne 195.3125 uV
+    return static_cast<uint16_t>(limit / 195.3125e-6f);
   }
 
-  return 0x0000;
+  if (this->alert_function_ == "Power Over-Limit") {
+    // Datasheet hovorí: Power Limit Register = Limit / (256 * Power LSB)
+    float power_lsb = 3.2f * this->current_lsb_;
+    return static_cast<uint16_t>(limit / (256.0f * power_lsb));
+  }
+
+  if (this->alert_function_ == "Temperature Over-Limit") {
+    // LSB pre teplotu je 7.8125 mC (0.0078125 °C)
+    return static_cast<uint16_t>(limit / 7.8125e-3f);
+  }
+
+  return 0;
 }
 
 // ===========================================================================
