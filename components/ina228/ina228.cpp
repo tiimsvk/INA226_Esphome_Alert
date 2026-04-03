@@ -446,10 +446,10 @@ uint16_t INA228Component::alert_function_to_diag_bit_(const std::string &functio
 // ===========================================================================
 uint16_t INA228Component::alert_limit_to_raw_(float limit) {
   if (this->alert_function_ == "Shunt Over-Limit" || this->alert_function_ == "Shunt Under-Limit") {
-    // LSB pre Shunt Voltage je 312.5 nV (0.3125 uV) ak ADCRANGE=0
-    // LSB je 78.125 nV (0.078125 uV) ak ADCRANGE=1
-    float lsb = this->adc_range_ ? 78.125e-9f : 312.5e-9f;
-    return static_cast<uint16_t>(limit / lsb);
+    // LSB je 312.5 nV (0.0000003125 V)
+    // Musíme použiť int16_t pre správne znamienko
+    int16_t raw = static_cast<int16_t>(limit / 312.5e-9f);
+    return static_cast<uint16_t>(raw);
   }
   
   if (this->alert_function_ == "Bus Over-Limit" || this->alert_function_ == "Bus Under-Limit") {
